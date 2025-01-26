@@ -53,8 +53,4 @@ runscript() {
 cd $ePaperClockLocation
 while true; do
   runscript
-  sleep_duration=60
-  echo "Sleeping for $sleep_duration seconds"
-  sleep $sleep_duration
-  sleep 60
 done

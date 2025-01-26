@@ -1,27 +1,9 @@
 {
-    "clock_names": {
-        "name_1": "Me",
-        "name_2": "You"
-    },
-    "weather_settings": {
-        "detailed_weather_forecast": true,
-        "use_one_call_api": true,
-        "metric_units": false,
-        "minutes_idle_until_detailed_weather": 30,
-        "zip_code": null
-    },
     "main_settings": {
         "twenty_four_hour_clock": false,
         "partial_update": false,
-        "time_on_right": true,
-        "sunset_flip": true,
-        "always_dark_mode": false,
         "four_gray_scale": true,
         "use_epd_libV2": false,
         "sleep_epd": true
-    },
-    "single_user_settings": {
-        "enable_single_user": true,
-        "album_art_right_side": true
     }
 }
