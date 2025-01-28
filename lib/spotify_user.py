@@ -1,8 +1,9 @@
 import json
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from dataclasses_json import dataclass_json
+from datetime import datetime as dt
 from typing import Any, Dict, Optional, Tuple
 
 import requests
@@ -17,17 +18,18 @@ spotify_logger = logging.getLogger('spotipy.client')
 @dataclass_json
 @dataclass
 class SpotifyTrackMetadata:
-    track_name: str = "N/A"
-    artist_name: str = "N/A"
-    context_type: str = "N/A" # used to determine context icon
-    context_name: str  = "N/A" # context name to be displayed
-    track_image_link: Optional[str] = None  # link to track image
-    album_name: str = "N/A"
+    track_name: str
+    artist_name: str
+    context_type: str  # used to determine context icon
+    context_name: str  # context name to be displayed
+    track_image_link: str  # link to track image
+    album_name: str
+    timestamp: dt = field(compare=False)
 
 
 class SpotifyUser:
     """ 
-    Class to handle Spotify User Information needed for Clock()
+    Class to handle Spotify User Information needed for Calendar
     """
     def __init__(self, name: str = "CHANGE_ME"):
         self.scope = "user-read-private, user-read-recently-played, user-read-playback-state, user-read-currently-playing"
@@ -75,23 +77,17 @@ class SpotifyUser:
         logger.info("%s's Spotify access_token granted", self.name)
         return True
 
-    def get_most_recent_spotipy_info(self) -> SpotifyTrackMetadata:
+    def get_most_recent_spotipy_info(self) -> Optional[SpotifyTrackMetadata]:
         if not self.sp:
             logger.error("%s's SpotipyObject not found", self.name)
-            return SpotifyTrackMetadata()
+            return None
         payload = self.fetch_current_track_from_spotipy()
         if payload and 'item' in payload:
-            track = self.extract_track_from_current_payload(payload)
-            self.write_track_to_cache(track)
-            return track
+            return self.extract_track_from_current_payload(payload)
         recent_payload = self.fetch_recently_played_track_from_spotipy()
         if recent_payload and 'items' in recent_payload:
-            track = self.extract_track_from_recent_payload(recent_payload)
-            self.write_track_to_cache(track)
-            return track
-        else:
-            old_track = self.read_track_from_cache()
-            return old_track
+            return self.extract_track_from_recent_payload(recent_payload)
+        return None
 
     def fetch_current_track_from_spotipy(self) -> Optional[Dict[str, Any]]:
         """
@@ -152,6 +148,7 @@ class SpotifyUser:
             context_name=context_name,
             track_image_link=track_image_link,
             album_name=album_name,
+            timestamp=dt.now(),
         )
         logger.info(f"Successfully fetched Spotify track: {track}")
         return track
@@ -182,6 +179,7 @@ class SpotifyUser:
             context_name=context_name,
             track_image_link=track_image_link,
             album_name=album_name,
+            timestamp=dt.now(),
         )
         logger.info(f"Successfully fetched Spotify track: {track}")
         return track
@@ -196,7 +194,7 @@ class SpotifyUser:
 
         Returns:
             Tuple[Optional[str], Optional[str]]: 
-                track_image_link: link to the track image, or None if not a single user
+                track_image_link: link to the track image
                 album_name: name of the album, or None if not a single user
         """
         return recent['item']['album']['images'][0]['url'], recent['item']['album']['name']
@@ -251,6 +249,7 @@ class SpotifyUser:
         Updates context.json with spotify user context.
         """
         try:
+            logger.info(f"writing track to {self.local_file_path}: {obj}")
             with open(self.local_file_path, 'w+', encoding='utf-8') as j_cxt:
                 json.dump(obj.to_dict(), j_cxt, indent=4)
         except (FileNotFoundError, PermissionError) as e:

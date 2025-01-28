@@ -25,7 +25,6 @@ class Draw:
         self.width, self.height = 264, 176
         self.ds = display_settings
         self.load_resources()
-        self.album_image = None
         self.dt = None
         self.time_str = None
 
@@ -148,25 +147,22 @@ class Draw:
         pos (tuple, optional): The position (x, y) where the album image should be pasted on the display. Defaults to (0, 0).
         convert_image (bool, optional): Flag indicating whether to convert the image to the specified image mode. Defaults to True.
         """
-        if convert_image or self.album_image is None:
-            self.album_image = Image.open(f"{image_file_path}{image_file_name}")
-            self.album_image = self.album_image.convert(self.image_mode)
+        if convert_image:
+            album_image = Image.open(f"{image_file_path}{image_file_name}")
+            album_image = album_image.convert(self.image_mode)
             
             if self.ds.four_gray_scale:
                 before_dither = time()
                 if "NA" in image_file_name:
-                    self.dither_album_art("NA")
+                    album_image_filepath = self.dither_album_art("NA")
                 else:
-                    self.dither_album_art()
+                    album_image_filepath = self.dither_album_art()
                 after_dither = time()
                 logger.info("* Dithering took %.2f seconds *", after_dither - before_dither)
 
-        chosen_album_image = "cache/album_art/AlbumImage" if "NA" not in image_file_name else "cache/album_art/NA"
-        chosen_album_image +=  "_resize"
-        chosen_album_image = chosen_album_image.replace("_resize", "_dither") if self.ds.four_gray_scale else chosen_album_image
-        self.album_image = Image.open(f"{chosen_album_image}.PNG")
+        album_image = Image.open(album_image_filepath)
 
-        self.image_obj.paste(self.album_image, pos)
+        self.image_obj.paste(album_image, pos)
 
 
     def draw_large_text(self, text: str, x: int, y: int) -> None:
@@ -183,48 +179,43 @@ class Draw:
         self.image_draw.text((x, y), text, font=self.DSfnt16)
     
     
-    def draw_calendar(self, x: int, y: int) -> tuple:
+    def draw_calendar(self, dt: datetime, x: int, y: int) -> tuple:
         self.image_draw.rectangle([(x,y),(270,119)],fill = "#808080")
-        now = datetime.now()
-        date = now.strftime("%A\n%B %d")
-        logger.info(date)
+        date = dt.strftime("%A\n%B %d")
         self.image_draw.text((132, 60), date, font=self.DSfnt32, fill="#ffffff")
 
     # ---- DRAW MISC FUNCs ----------------------------------------------------------------------------
 
-    def dither_album_art(self, main_image_name: str = "AlbumImage") -> bool:
+    def dither_album_art(self, main_image_name: str = "AlbumImage") -> Optional[str]:
         """
         Dithers the album art image using the Floyd-Steinberg algorithm.
 
         The image is resized and the colors are remapped using a palette. The dithered image is then saved to a file.
 
         Returns:
-        bool: True if the dithering was successful, False otherwise.
+        str: dithered image filepath if the dithering was successful, None otherwise.
         """
         # Define the file paths
         palette_path = os.path.join(self.dir_path, 'palette.PNG')
-        resize_paths = [os.path.join(self.dir_path, f'{main_image_name}_resize.PNG')]
-        dither_paths = [os.path.join(self.dir_path, f'{main_image_name}_dither.PNG')]
+        resize_path = os.path.join(self.dir_path, f'{main_image_name}_resize.PNG')
+        dither_path = os.path.join(self.dir_path, f'{main_image_name}_dither.PNG')
 
-        for resize_path, dither_path in zip(resize_paths, dither_paths):
-            # Check if the files exist
-            if not os.path.exists(resize_path) or not os.path.exists(palette_path):
-                logger.error("Error: File %s not found.", resize_path if not os.path.exists(resize_path) else palette_path)
-                return False
+        # Check if the files exist
+        if not os.path.exists(resize_path) or not os.path.exists(palette_path):
+            logger.error("Error: File %s not found.", resize_path if not os.path.exists(resize_path) else palette_path)
+            return None
 
-            # Remap the colors in the image
-            start_time = time()
-            subprocess.run(['convert', resize_path, '-dither', 'Floyd-Steinberg', '-remap', palette_path, dither_path], check=True)
-            end_time = time()
-            logger.info("* Dithering %s took %.2f seconds *", os.path.basename(dither_path), end_time - start_time)
+        # Remap the colors in the image
+        start_time = time()
+        subprocess.run(['convert', resize_path, '-dither', 'Floyd-Steinberg', '-remap', palette_path, dither_path], check=True)
+        end_time = time()
+        logger.info("* Dithering %s took %.2f seconds *", os.path.basename(dither_path), end_time - start_time)
 
-            if not os.path.exists(dither_path):
-                logger.error("Error: File %s not found.", dither_path)
-                return False
+        if not os.path.exists(dither_path):
+            logger.error("Error: File %s not found.", dither_path)
+            return None
 
-            self.album_image = Image.open(dither_path)
-
-        return True
+        return dither_path
 
 
     def get_image_obj(self) -> Image:
