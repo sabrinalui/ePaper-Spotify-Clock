@@ -1,9 +1,6 @@
 {
     "main_settings": {
-        "twenty_four_hour_clock": false,
-        "partial_update": false,
         "four_gray_scale": true,
-        "use_epd_libV2": false,
         "sleep_epd": true
     }
 }

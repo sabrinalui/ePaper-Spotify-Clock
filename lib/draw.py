@@ -159,8 +159,7 @@ class Draw:
                     album_image_filepath = self.dither_album_art()
                 after_dither = time()
                 logger.info("* Dithering took %.2f seconds *", after_dither - before_dither)
-
-        album_image = Image.open(album_image_filepath)
+                album_image = Image.open(album_image_filepath)
 
         self.image_obj.paste(album_image, pos)
 

@@ -18,7 +18,7 @@ class Calendar:
         logger.info("\n\t-- Calendar Init --\n-----------------------------------------------------------------------------------------------------")
         self.local_run: bool = False
         try:
-            from waveshare_epd import epd2in7_V2, epd2in7 # type: ignore
+            from waveshare_epd import epd2in7_V2 # type: ignore
         except ImportError:
             self.local_run = True
 
@@ -26,7 +26,7 @@ class Calendar:
         self.ds: DisplaySettings = display_settings
         self.epd: Optional[None] = None
         if not self.local_run:
-            self.epd = epd2in7_V2.EPD() if self.ds.use_epd_lib_V2 else epd2in7.EPD()
+            self.epd = epd2in7_V2.EPD()
         self.did_epd_init: bool = False
 
         # Initialize Info/Drawing Libs/Users
@@ -76,7 +76,7 @@ class Calendar:
                 most_recent_track = last_drawn_track
                 should_redraw = False
         if most_recent_track is not None and last_drawn_track is not None:
-            time_elapsed_since_last_draw = dt.now() - last_drawn_track.timestamp
+            time_elapsed_since_last_draw = dt.now() - dt.fromtimestamp(last_drawn_track.timestamp)
             should_redraw = (
                 last_drawn_track != most_recent_track
                 or time_elapsed_since_last_draw.total_seconds() > 3600
@@ -102,10 +102,6 @@ class Calendar:
                     logger.info("Initializing EPD 4Gray...")
                     self.epd.Init_4Gray()
                     logger.info("Done initializing EPD 4Gray.")
-                elif self.ds.partial_update:
-                    logger.info("Initializing partial EPD...")
-                    self.epd.init_fast(self.epd.Seconds_1_5S)
-                    logger.info("Done initializing Partial EPD.")
                 
                 self.did_epd_init = True
 
@@ -117,7 +113,7 @@ class Calendar:
                     self.epd.display(self.epd.getbuffer(self.image_obj.get_image_obj()))
                 self.spotify_user.write_track_to_cache(most_recent_track)
             
-        if self.did_epd_init and self.ds.sleep_epd and not self.ds.partial_update:
+        if self.did_epd_init and self.ds.sleep_epd:
             logger.info("Sleeping EPD")
             self.epd.sleep()
             self.did_epd_init = False

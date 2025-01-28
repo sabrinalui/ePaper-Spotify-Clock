@@ -24,21 +24,20 @@ class SpotifyTrackMetadata:
     context_name: str  # context name to be displayed
     track_image_link: str  # link to track image
     album_name: str
-    timestamp: dt = field(compare=False)
+    timestamp: int = field(compare=False)
 
 
 class SpotifyUser:
     """ 
     Class to handle Spotify User Information needed for Calendar
     """
-    def __init__(self, name: str = "CHANGE_ME"):
+    def __init__(self):
         self.scope = "user-read-private, user-read-recently-played, user-read-playback-state, user-read-currently-playing"
         self.local_file_path = 'cache/context.json'
         self.redirect_uri = 'http://localhost:8888/callback'
         self.spot_client_id = ''
         self.spot_client_secret = ''
         self.cache = 'cache/.authcache1'
-        self.name = name
         self.oauth = None
         self.oauth_token_info = None
         self.sp = None
@@ -74,12 +73,12 @@ class SpotifyUser:
                 token_info = self.oauth.get_access_token(code)
                 self.token = token_info['access_token']
         self.sp = spotipy.Spotify(auth=self.token)
-        logger.info("%s's Spotify access_token granted", self.name)
+        logger.info("Spotify access_token granted")
         return True
 
     def get_most_recent_spotipy_info(self) -> Optional[SpotifyTrackMetadata]:
         if not self.sp:
-            logger.error("%s's SpotipyObject not found", self.name)
+            logger.error("SpotipyObject not found")
             return None
         payload = self.fetch_current_track_from_spotipy()
         if payload and 'item' in payload:
@@ -108,7 +107,7 @@ class SpotifyUser:
             except requests.exceptions.ConnectionError as e:
                 logger.error(e)
                 return None
-        logger.error("Failed to get current %s's Spotify Info", self.name)
+        logger.error("Failed to get current user's current track")
         return None
 
 
@@ -123,7 +122,7 @@ class SpotifyUser:
             except requests.exceptions.ConnectionError as e:
                 logger.error(e)
                 return None
-        logger.error(f"Failed to get current {self.name}'s recently played track")
+        logger.error(f"Failed to get current user's recently played track")
         return None
 
 
@@ -148,7 +147,7 @@ class SpotifyUser:
             context_name=context_name,
             track_image_link=track_image_link,
             album_name=album_name,
-            timestamp=dt.now(),
+            timestamp=dt.now().timestamp(),
         )
         logger.info(f"Successfully fetched Spotify track: {track}")
         return track
@@ -179,7 +178,7 @@ class SpotifyUser:
             context_name=context_name,
             track_image_link=track_image_link,
             album_name=album_name,
-            timestamp=dt.now(),
+            timestamp=dt.now().timestamp(),
         )
         logger.info(f"Successfully fetched Spotify track: {track}")
         return track
