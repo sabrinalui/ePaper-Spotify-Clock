@@ -68,10 +68,11 @@ class Draw:
                 - dj_icon: Icon for DJ.
                 - collection_icon: Icon for collection.
         """
-        self.DSfnt16, self.DSfnt24, self.DSfnt32 = None, None, None
+        self.DSfnt10, self.DSfnt20, self.DSfnt32 = None, None, None
         self.playlist_icon, self.artist_icon, self.album_icon, self.dj_icon, self.collection_icon, self.failure_icon = None, None, None, None, None, None
-        font_sizes = [16, 24, 32]
-        font_files = ['Nintendo-DS-BIOS.ttf']
+        font_sizes = [10, 20, 32]
+        # font_files = ['NotoSansJP-VariableFont_wght.ttf']
+        font_files = ['NDS12.ttf']
         for font_file in font_files:
             for size in font_sizes:
                 font_attribute = f'DSfnt{size}'
@@ -129,7 +130,7 @@ class Draw:
         icon_y = context_y - 2
         self.image_obj.paste(icon, (icon_x, icon_y))
 
-        self.image_draw.text((context_x + 20, context_y), context_text, font=self.DSfnt16)
+        self.image_draw.text((context_x + 20, context_y), context_text, font=self.DSfnt10)
         return True
 
     def draw_album_image(
@@ -168,20 +169,29 @@ class Draw:
         """
         Draws text line at the specified position on the image in font size 32.
         """
-        self.image_draw.text((x, y), text, font=self.DSfnt32)
+        self.image_draw.text((x, y), text, font=self.DSfnt20)
 
 
     def draw_small_text(self, text: str, x: int, y: int) -> None:
         """
-        Draws text line at the specified position on the image in font size 16.
+        Draws text line at the specified position on the image in font size 12.
         """
-        self.image_draw.text((x, y), text, font=self.DSfnt16)
+        self.image_draw.text((x, y), text, font=self.DSfnt10)
     
     
     def draw_calendar(self, dt: datetime, x: int, y: int) -> tuple:
         self.image_draw.rectangle([(x,y),(270,119)],fill = "#808080")
+        if 6 <= dt.hour < 12:
+            msg = "gm"
+        elif 12 <= dt.hour < 20:
+            msg = "hi"
+        else:
+            msg = "gn"
+        msg += " r \u2665"
+        self.image_draw.text((x + 10, y + 10), msg, font=self.DSfnt10, fill="#ffffff")
+    
         date = dt.strftime("%A\n%B %d")
-        self.image_draw.text((132, 60), date, font=self.DSfnt32, fill="#ffffff")
+        self.image_draw.text((x + 10, 60), date, font=self.DSfnt20, fill="#ffffff")
 
     # ---- DRAW MISC FUNCs ----------------------------------------------------------------------------
 

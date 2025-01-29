@@ -1,7 +1,7 @@
 #!/bin/bash
 # launch_epaper.sh
 # navigate to directory then execute python script
-ePaperClockLocation="/home/$USER/e-Paper/RaspberryPi_JetsonNano/python/examples/"
+ePaperClockLocation="/home/$USER/ePaper-Spotify-Clock/"
 
 # Initialize our own variables
 verbose=0
@@ -51,6 +51,4 @@ runscript() {
 }
 
 cd $ePaperClockLocation
-while true; do
-  runscript
-done
+runscript
