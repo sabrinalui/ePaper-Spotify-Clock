@@ -126,11 +126,11 @@ class Draw:
         }
 
         icon = icon_dict.get(context_type, self.failure_icon)
-        icon_x = context_x
+        icon_x = context_x - 1
         icon_y = context_y - 2
         self.image_obj.paste(icon, (icon_x, icon_y))
 
-        self.image_draw.text((context_x + 20, context_y), context_text, font=self.DSfnt10)
+        self.image_draw.text((context_x + 19, context_y), context_text, font=self.DSfnt10)
         return True
 
     def draw_album_image(

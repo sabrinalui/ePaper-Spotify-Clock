@@ -110,6 +110,7 @@ class Calendar:
                     self.epd.display_4Gray(self.epd.getbuffer_4Gray(self.image_obj.get_image_obj()))
                 else:
                     self.epd.display(self.epd.getbuffer(self.image_obj.get_image_obj()))
+            self.spotify_user.write_track_to_cache(most_recent_track)
 
         if self.did_epd_init and self.ds.sleep_epd:
             logger.info("Sleeping EPD")
@@ -219,5 +220,5 @@ class Calendar:
 
     def build_track_info(self, track: SpotifyTrackMetadata, x: int, y: int) -> None:
         self.image_obj.draw_small_text(track.track_name, x, y)
-        self.image_obj.draw_small_text(track.artist_name, x, y + 14)
-        self.image_obj.draw_spot_context(track.context_type, track.context_name, x, y + 28)
+        self.image_obj.draw_small_text(track.artist_name, x, y + 15)
+        self.image_obj.draw_spot_context(track.context_type, track.context_name, x, y + 30)
