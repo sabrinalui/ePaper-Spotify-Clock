@@ -71,7 +71,6 @@ class Draw:
         self.DSfnt10, self.DSfnt20, self.DSfnt32 = None, None, None
         self.playlist_icon, self.artist_icon, self.album_icon, self.dj_icon, self.collection_icon, self.failure_icon = None, None, None, None, None, None
         font_sizes = [10, 20, 32]
-        # font_files = ['NotoSansJP-VariableFont_wght.ttf']
         font_files = ['NDS12.ttf']
         for font_file in font_files:
             for size in font_sizes:
@@ -103,7 +102,7 @@ class Draw:
 
 
     # ---- DRAWING FUNCs ----------------------------------------------------------------------------
-    def draw_spot_context(self, context_type: str, context_text: str, context_x: int, context_y: int) -> bool:
+    def draw_spot_context(self, context_type: str, context_text: str, x: int, y: int) -> bool:
         """
         Draws both icon {playlist, album, artist} and context text in the bottom of Spot box.
 
@@ -126,11 +125,19 @@ class Draw:
         }
 
         icon = icon_dict.get(context_type, self.failure_icon)
-        icon_x = context_x - 1
-        icon_y = context_y - 2
+        icon_x = x - 1
+        icon_y = y - 2
         self.image_obj.paste(icon, (icon_x, icon_y))
 
-        self.image_draw.text((context_x + 19, context_y), context_text, font=self.DSfnt10)
+        self.draw_text_wrapped(
+            text=context_text,
+            font=self.DSfnt10,
+            init_x=x,
+            init_y=y,
+            width=self.width-x,
+            textcolor='#000000',
+            indent=18,
+        )
         return True
 
     def draw_album_image(
@@ -172,15 +179,93 @@ class Draw:
         self.image_draw.text((x, y), text, font=self.DSfnt20)
 
 
-    def draw_small_text(self, text: str, x: int, y: int) -> None:
+    def draw_small_text(self, text: str, x: int, y: int, width: int, linespacing: int = 0) -> int:
         """
         Draws text line at the specified position on the image in font size 12.
         """
-        self.image_draw.text((x, y), text, font=self.DSfnt10)
-    
-    
+        width = min(self.width, width)
+        return self.draw_text_wrapped(
+            text, self.DSfnt10, x, y, width, '#000000', linespacing,
+        )
+
+
+    def draw_text_wrapped(
+        self, text, font, init_x, init_y, width, textcolor, linespacing=0, indent=0,
+    ) -> int:
+        """Draw text in an image, wrapping to a second line as needed.
+        Max two lines, cutoff with "...". Returns the total text height drawn.
+
+        text:      a long string, without newlines
+        font:      a PIL ImageFont object
+        width:     width of the area available for text
+        init_x
+        init_y
+        textcolor: a color specifier string
+        linespacing: extra space between lines (default 0)
+        """
+        if not text.strip():
+            return init_y
+
+        # Find a first line that fits
+        def find_end_of_line(str, w):
+            left, top, right, bottom = font.getbbox(str)
+
+            avg_char_width = w / len(str)
+
+            end_index = int(w / avg_char_width)
+            if end_index >= len(str):
+                end_index = len(str)
+            while end_index >= 0:
+                if end_index == len(str) or str[end_index-1].isspace():
+                    left, top, right, bottom = font.getbbox(str[:end_index])
+                    if right - left < w:
+                        # It fits
+                        break
+                # Doesn't fit yet, reduce line size by 1 and try again.
+                end_index -= 1
+
+            return end_index, bottom
+
+        first_line_end, bottom = find_end_of_line(text, width - indent)
+        if first_line_end < 0:
+            # Can't fit one word... just overflow
+            self.image_draw.text((init_x + indent, init_y), text,
+                font=font, fill=textcolor)
+            return init_y + bottom
+
+        # Now end is the index where we'll break
+        left, top, right, bottom = font.getbbox(text[:first_line_end])
+        self.image_draw.text((init_x + indent, init_y), text[:first_line_end],
+            font=font, fill=textcolor)
+
+        if first_line_end == len(text):
+            return init_y + bottom
+        if text[first_line_end].isspace():
+            first_line_end += 1
+        
+        second_line_init_y = init_y + bottom + linespacing
+        remaining_text = text[first_line_end:]
+        second_line_end, second_bottom = find_end_of_line(remaining_text, width)
+        second_line_text = remaining_text
+        if 0 < second_line_end < len(remaining_text):
+            # We couldn't fit in two lines so just cut off with '...'
+            second_line_text = f"{remaining_text[:second_line_end]}..."
+        self.image_draw.text(
+            (init_x, second_line_init_y), 
+            second_line_text,
+            font=font, 
+            fill=textcolor,
+        )
+        return second_line_init_y + second_bottom
+
+
     def draw_calendar(self, dt: datetime, x: int, y: int) -> tuple:
-        self.image_draw.rectangle([(x,y),(270,119)],fill = "#808080")
+        self.image_draw.rectangle([(x,y),(self.width, self.height)],fill = "#808080")    
+        date = dt.strftime("%A %b %d")
+        self.image_draw.text((x + 10, y + 8), date, font=self.DSfnt20, fill="#ffffff")
+        self.image_draw.text((x + 10, y + 35), self.get_greeting(dt), font=self.DSfnt10, fill="#ffffff")
+
+    def get_greeting(self, dt: datetime) -> str:
         if 6 <= dt.hour < 12:
             msg = "gm"
         elif 12 <= dt.hour < 20:
@@ -188,10 +273,7 @@ class Draw:
         else:
             msg = "gn"
         msg += " r \u2665"
-        self.image_draw.text((x + 10, y + 10), msg, font=self.DSfnt10, fill="#ffffff")
-    
-        date = dt.strftime("%A\n%B %d")
-        self.image_draw.text((x + 10, 60), date, font=self.DSfnt20, fill="#ffffff")
+        return msg
 
     # ---- DRAW MISC FUNCs ----------------------------------------------------------------------------
 

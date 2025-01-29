@@ -58,7 +58,7 @@ class Calendar:
         should_download_album = True
         should_redraw = True
         if most_recent_track is None:
-            logger.error("Failed to fetch Spotify info remotely, reading from cache...")
+            logger.warning("Failed to fetch Spotify info remotely, reading from cache...")
             if last_drawn_track is None:
                 logger.error("Failed to fetch Spotify info from cache.")
                 most_recent_track = SpotifyTrackMetadata(
@@ -71,7 +71,7 @@ class Calendar:
                     timestamp=dt.now(),
                 )
             else:
-                logger.error(f"Successfully fetched last track from cache: {last_drawn_track}")
+                logger.info(f"Successfully fetched last track from cache: {last_drawn_track}")
                 most_recent_track = last_drawn_track
                 should_redraw = False
         if most_recent_track is not None and last_drawn_track is not None:
@@ -135,8 +135,8 @@ class Calendar:
             track = self.spotify_user.get_most_recent_spotipy_info()
             logger.info(f"Fetched most recent Spotify track: {track}")
         self.build_album_art(track, should_download_album, (0, 0))
-        self.build_calendar(121, 0)
-        self.build_track_info(track, 10, 128)
+        self.build_track_info(track, 130, 30)
+        self.build_calendar(0, 120)
         self.save_local_file()  # save image locally for debugging
 
 
@@ -218,7 +218,7 @@ class Calendar:
             return None
 
 
-    def build_track_info(self, track: SpotifyTrackMetadata, x: int, y: int) -> None:
-        self.image_obj.draw_small_text(track.track_name, x, y)
-        self.image_obj.draw_small_text(track.artist_name, x, y + 15)
-        self.image_obj.draw_spot_context(track.context_type, track.context_name, x, y + 30)
+    def build_track_info(self, track: SpotifyTrackMetadata, x: int, y: int) -> None:        
+        y = self.image_obj.draw_small_text(track.track_name, x, y, 264-x)
+        y = self.image_obj.draw_small_text(track.artist_name, x, y + 3, 264-x)
+        self.image_obj.draw_spot_context(track.context_type, track.context_name, x, y + 3)
