@@ -155,8 +155,8 @@ class Draw:
         pos (tuple, optional): The position (x, y) where the album image should be pasted on the display. Defaults to (0, 0).
         convert_image (bool, optional): Flag indicating whether to convert the image to the specified image mode. Defaults to True.
         """
+        album_image = Image.open(f"{image_file_path}{image_file_name}")
         if convert_image:
-            album_image = Image.open(f"{image_file_path}{image_file_name}")
             album_image = album_image.convert(self.image_mode)
             
             if self.ds.four_gray_scale:

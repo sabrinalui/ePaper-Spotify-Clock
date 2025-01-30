@@ -31,24 +31,26 @@ while (( "$#" )); do
 done
 
 runscript() {
-  if ! pgrep -f "python3 main.py" >/dev/null; then
-    # Construct the python command with the parsed arguments
+  while true; do
+    echo "Starting main.py..."
+    
     python_cmd="python3 main.py"
     [ "$verbose" = 1 ] && python_cmd="$python_cmd -v"
     [ "$clock" = 1 ] && python_cmd="$python_cmd --clock"
     [ "$local_run" = 1 ] && python_cmd="$python_cmd --local"
 
-    echo "Running command: $python_cmd"
     if [ "$verbose" = 1 ]; then
       $python_cmd
     else
       $python_cmd 2>>failures.txt
     fi
-    if [ $? -ne 0 ]; then
-      echo -e "Failure occurred in main.py at: $(date '+%Y-%m-%d %H:%M:%S')\n" >>failures.txt
-    fi
-  fi
+
+    echo "main.py crashed at: $(date '+%Y-%m-%d %H:%M:%S')" >>failures.txt
+    echo "Restarting in 5 seconds..."
+    sleep 5
+  done
 }
 
-cd $ePaperClockLocation
+cd "$ePaperClockLocation" || { echo "Failed to change directory"; exit 1; }
+
 runscript
