@@ -217,7 +217,7 @@ class Calendar:
             im.thumbnail(dimensions)
             im = im.convert("L")
             im.save(f"{local_dir}{outfile}", "PNG")
-            logger.info(f"Saved resized image to {f"{local_dir}{outfile}"}.")
+            logger.info(f"Saved resized image to {local_dir}{outfile}.")
             return (local_dir, outfile)
         except IOError as e:
             logger.error(f"Failed to resize {image_name}: {e}")
