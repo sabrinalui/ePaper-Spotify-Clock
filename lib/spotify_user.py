@@ -248,11 +248,11 @@ class SpotifyUser:
         Updates context.json with spotify user context.
         """
         try:
-            logger.info(f"writing track to {self.local_file_path}: {obj}")
+            logger.info(f"Writing to {self.local_file_path}...")
             with open(self.local_file_path, 'w+', encoding='utf-8') as j_cxt:
                 json.dump(obj.to_dict(), j_cxt, indent=4)
         except (FileNotFoundError, PermissionError) as e:
-            logger.error(f"error writing {self.local_file_path}: {e}, contents: {obj.to_dict()}")
+            logger.error(f"Error writing {self.local_file_path}: {e}, contents: {obj.to_dict()}")
 
     def read_track_from_cache(self) -> Optional[SpotifyTrackMetadata]:
         if os.path.exists(self.local_file_path):
@@ -262,5 +262,5 @@ class SpotifyUser:
                     obj = SpotifyTrackMetadata.from_dict(ctx)
                     return obj
                 except (json.JSONDecodeError, IndexError) as e:
-                    logger.error(f"error reading {self.local_file_path}: {e}")
+                    logger.error(f"Error reading {self.local_file_path}: {e}")
         return None

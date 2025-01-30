@@ -60,7 +60,7 @@ class Calendar:
         if most_recent_track is None:
             logger.warning("Failed to fetch Spotify info remotely, reading from cache...")
             if last_drawn_track is None:
-                logger.error("Failed to fetch Spotify info from cache.")
+                logger.error("Failed to fetch Spotify info from cache, displaying N/A.")
                 most_recent_track = SpotifyTrackMetadata(
                     track_name="N/A",
                     artist_name="N/A",
@@ -83,6 +83,7 @@ class Calendar:
             should_download_album = (
                 last_drawn_track.album_name != most_recent_track.album_name
             )
+            logger.info(f"should_redraw={should_redraw}, should_download_album={should_download_album} based on cached track: {last_drawn_track}")
         if should_redraw:
             self.image_obj.clear_image()
             self.build_image(most_recent_track, should_download_album)
@@ -105,15 +106,16 @@ class Calendar:
                 self.did_epd_init = True
 
             if self.did_epd_init and not self.local_run:
-                logger.info("Drawing image to EPD")
+                logger.info("Drawing image to EPD...")
                 if self.ds.four_gray_scale:
                     self.epd.display_4Gray(self.epd.getbuffer_4Gray(self.image_obj.get_image_obj()))
                 else:
                     self.epd.display(self.epd.getbuffer(self.image_obj.get_image_obj()))
+                logger.info("Done drawing to EPD.")
             self.spotify_user.write_track_to_cache(most_recent_track)
 
         if self.did_epd_init and self.ds.sleep_epd:
-            logger.info("Sleeping EPD")
+            logger.info("Sleeping EPD.")
             self.epd.sleep()
             self.did_epd_init = False
         
@@ -196,9 +198,12 @@ class Calendar:
         Returns:
             (filename, filepath) if the album art was successfully downloaded and resized, else None.
         """
+        logger.info(f"Fetching and resizing album art from {track_image_link}...")
         os.makedirs(local_dir, exist_ok=True)
         try:
+            start = dt.now()
             image_data = requests.get(track_image_link, timeout=25).content
+            logger.info(f"Download took {(dt.now() - start).total_seconds()} seconds.")
         except requests.exceptions.RequestException as e:
             logger.error("Failed to download %s: %s", track_image_link, e)
             return None
@@ -212,6 +217,7 @@ class Calendar:
             im.thumbnail(dimensions)
             im = im.convert("L")
             im.save(f"{local_dir}{outfile}", "PNG")
+            logger.info(f"Saved resized image to {f"{local_dir}{outfile}"}.")
             return (local_dir, outfile)
         except IOError as e:
             logger.error(f"Failed to resize {image_name}: {e}")

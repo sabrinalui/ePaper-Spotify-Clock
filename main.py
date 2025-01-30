@@ -19,11 +19,11 @@ if __name__ == "__main__":
     def refresh_loop():
         global last_refreshed_time
         while True:
-            time.sleep(REFRESH_INTERVAL_SEC)  # Sleep for refresh interval
             with draw_lock:
                 print("drawing from refresh_loop")
                 calendar.draw()
                 last_refreshed_time = dt.now()
+            time.sleep(REFRESH_INTERVAL_SEC)  # Sleep for refresh interval
 
     def button_listener():
         global last_refreshed_time
