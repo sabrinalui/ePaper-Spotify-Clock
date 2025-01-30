@@ -221,4 +221,4 @@ class Calendar:
     def build_track_info(self, track: SpotifyTrackMetadata, x: int, y: int) -> None:        
         y = self.image_obj.draw_small_text(track.track_name, x, y, 264-x)
         y = self.image_obj.draw_small_text(track.artist_name, x, y + 3, 264-x)
-        self.image_obj.draw_spot_context(track.context_type, track.context_name, x, y + 3)
+        self.image_obj.draw_spot_context(track.context_type, track.context_name, x, y + 3, 264-x)

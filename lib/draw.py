@@ -102,7 +102,7 @@ class Draw:
 
 
     # ---- DRAWING FUNCs ----------------------------------------------------------------------------
-    def draw_spot_context(self, context_type: str, context_text: str, x: int, y: int) -> bool:
+    def draw_spot_context(self, context_type: str, context_text: str, x: int, y: int, width: int) -> bool:
         """
         Draws both icon {playlist, album, artist} and context text in the bottom of Spot box.
 
@@ -134,7 +134,7 @@ class Draw:
             font=self.DSfnt10,
             init_x=x,
             init_y=y,
-            width=self.width-x,
+            width=width,
             textcolor='#000000',
             indent=18,
         )
@@ -209,8 +209,7 @@ class Draw:
         # Find a first line that fits
         def find_end_of_line(str, w):
             left, top, right, bottom = font.getbbox(str)
-
-            avg_char_width = w / len(str)
+            avg_char_width = right / len(str)
 
             end_index = int(w / avg_char_width)
             if end_index >= len(str):
@@ -220,7 +219,7 @@ class Draw:
                     left, top, right, bottom = font.getbbox(str[:end_index])
                     if right - left < w:
                         # It fits
-                        break
+                        return end_index, bottom
                 # Doesn't fit yet, reduce line size by 1 and try again.
                 end_index -= 1
 
