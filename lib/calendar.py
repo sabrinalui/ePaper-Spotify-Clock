@@ -121,7 +121,7 @@ class Calendar:
         
         end = dt.now()
         time_elapsed = end - start
-        logger.info(f"tick_tock() took {time_elapsed.total_seconds()} seconds")
+        logger.info(f"draw() took {time_elapsed.total_seconds()} seconds")
 
 
     def build_image(
@@ -137,7 +137,7 @@ class Calendar:
             track = self.spotify_user.get_most_recent_spotipy_info()
             logger.info(f"Fetched most recent Spotify track: {track}")
         self.build_album_art(track, should_download_album, (0, 0))
-        self.build_track_info(track, 130, 30)
+        self.build_track_info(track, 120, 120)
         self.build_calendar(0, 120)
         self.save_local_file()  # save image locally for debugging
 
@@ -224,7 +224,13 @@ class Calendar:
             return None
 
 
-    def build_track_info(self, track: SpotifyTrackMetadata, x: int, y: int) -> None:        
-        y = self.image_obj.draw_small_text(track.track_name, x, y, 264-x)
-        y = self.image_obj.draw_small_text(track.artist_name, x, y + 3, 264-x)
-        self.image_obj.draw_spot_context(track.context_type, track.context_name, x, y + 3, 264-x)
+    def build_track_info(self, track: SpotifyTrackMetadata, left: int, bottom: int) -> None:
+        self.image_obj.draw_track_context(
+            track_name=track.track_name, 
+            artist_name=track.artist_name,
+            context_type=track.context_type,
+            context_name=track.context_name,
+            left=left,
+            bottom=bottom,
+            padding=10,
+        )

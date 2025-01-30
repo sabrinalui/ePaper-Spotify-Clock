@@ -68,9 +68,9 @@ class Draw:
                 - dj_icon: Icon for DJ.
                 - collection_icon: Icon for collection.
         """
-        self.DSfnt10, self.DSfnt20, self.DSfnt32 = None, None, None
+        self.DSfnt10, self.DSfnt20 = None, None
         self.playlist_icon, self.artist_icon, self.album_icon, self.dj_icon, self.collection_icon, self.failure_icon = None, None, None, None, None, None
-        font_sizes = [10, 20, 32]
+        font_sizes = [10, 20]
         font_files = ['NDS12.ttf']
         for font_file in font_files:
             for size in font_sizes:
@@ -102,7 +102,7 @@ class Draw:
 
 
     # ---- DRAWING FUNCs ----------------------------------------------------------------------------
-    def draw_spot_context(self, context_type: str, context_text: str, x: int, y: int, width: int) -> bool:
+    def draw_spot_context(self, context_type: str, context_text: str, x: int, y: int, linespacing: int = 0, dry_run: bool = True) -> bool:
         """
         Draws both icon {playlist, album, artist} and context text in the bottom of Spot box.
 
@@ -113,7 +113,7 @@ class Draw:
             context_y (int): The y-coordinate of the starting position for drawing the context.
 
         Returns:
-            bool: True if the context was successfully drawn, False otherwise.
+            bottom y value
         """
 
         icon_dict = {
@@ -127,18 +127,21 @@ class Draw:
         icon = icon_dict.get(context_type, self.failure_icon)
         icon_x = x - 1
         icon_y = y - 2
-        self.image_obj.paste(icon, (icon_x, icon_y))
+        if not dry_run:
+            self.image_obj.paste(icon, (icon_x, icon_y))
 
-        self.draw_text_wrapped(
+        bottom = self.draw_text_wrapped(
             text=context_text,
             font=self.DSfnt10,
             init_x=x,
             init_y=y,
-            width=width,
+            width=self.width-x,
             textcolor='#000000',
+            linespacing=linespacing,
             indent=18,
+            dry_run=dry_run,
         )
-        return True
+        return bottom
 
     def draw_album_image(
         self, 
@@ -172,25 +175,44 @@ class Draw:
         self.image_obj.paste(album_image, pos)
 
 
-    def draw_large_text(self, text: str, x: int, y: int) -> None:
+    def draw_song_title(self, text: str, x: int, y: int, linespacing: int = 0, dry_run: bool = True) -> int:
         """
-        Draws text line at the specified position on the image in font size 32.
+        Draws song title at the specified position on the image.
+        First, we try to draw in font size 20 if the text fits on one line. 
+        If it doesn't, we draw in font size 10, wrapping once if necessary.
         """
-        self.image_draw.text((x, y), text, font=self.DSfnt20)
-
-
-    def draw_small_text(self, text: str, x: int, y: int, width: int, linespacing: int = 0) -> int:
-        """
-        Draws text line at the specified position on the image in font size 12.
-        """
-        width = min(self.width, width)
-        return self.draw_text_wrapped(
-            text, self.DSfnt10, x, y, width, '#000000', linespacing,
+        _, _, width, height = self.DSfnt20.getbbox(text)
+        does_text_fit = width < self.width - x
+        if does_text_fit:
+            # Fits on one line with font size 20
+            if not dry_run:
+                self.image_draw.text((x, y), text, font=self.DSfnt20)
+            return y + height
+        return self.draw_small_text(
+            text=text, x=x, y=y, linespacing=linespacing, dry_run=dry_run,
         )
 
+    def draw_small_text(
+        self, text: str, x: int, y: int, linespacing: int = 0, dry_run: bool = True
+    ) -> int:
+        """
+        Draws text line at the specified position on the image in font size 10.
+        """
+        return self.draw_text_wrapped(
+            text, self.DSfnt10, x, y, self.width-x, '#000000', linespacing, dry_run=dry_run
+        )
 
     def draw_text_wrapped(
-        self, text, font, init_x, init_y, width, textcolor, linespacing=0, indent=0,
+        self, 
+        text, 
+        font,
+        init_x, 
+        init_y, 
+        width, 
+        textcolor, 
+        linespacing=0, 
+        indent=0,
+        dry_run=True,
     ) -> int:
         """Draw text in an image, wrapping to a second line as needed.
         Max two lines, cutoff with "...". Returns the total text height drawn.
@@ -198,8 +220,8 @@ class Draw:
         text:      a long string, without newlines
         font:      a PIL ImageFont object
         width:     width of the area available for text
-        init_x
-        init_y
+        init_x:    start x of text
+        init_y:    start y of text
         textcolor: a color specifier string
         linespacing: extra space between lines (default 0)
         """
@@ -207,16 +229,16 @@ class Draw:
             return init_y
 
         # Find a first line that fits
-        def find_end_of_line(str, w):
-            left, top, right, bottom = font.getbbox(str)
-            avg_char_width = right / len(str)
+        def find_end_of_line(s, w):
+            left, top, right, bottom = font.getbbox(s)
+            avg_char_width = right / len(s)
 
             end_index = int(w / avg_char_width)
-            if end_index >= len(str):
-                end_index = len(str)
+            if end_index >= len(s):
+                end_index = len(s)
             while end_index >= 0:
-                if end_index == len(str) or str[end_index-1].isspace():
-                    left, top, right, bottom = font.getbbox(str[:end_index])
+                if end_index == len(s) or s[end_index-1].isspace():
+                    left, top, right, bottom = font.getbbox(s[:end_index])
                     if right - left < w:
                         # It fits
                         return end_index, bottom
@@ -234,8 +256,9 @@ class Draw:
 
         # Now end is the index where we'll break
         left, top, right, bottom = font.getbbox(text[:first_line_end])
-        self.image_draw.text((init_x + indent, init_y), text[:first_line_end],
-            font=font, fill=textcolor)
+        if not dry_run:
+            self.image_draw.text((init_x + indent, init_y), text[:first_line_end],
+                font=font, fill=textcolor)
 
         if first_line_end == len(text):
             return init_y + bottom
@@ -249,14 +272,56 @@ class Draw:
         if 0 < second_line_end < len(remaining_text):
             # We couldn't fit in two lines so just cut off with '...'
             second_line_text = f"{remaining_text[:second_line_end]}..."
-        self.image_draw.text(
-            (init_x, second_line_init_y), 
-            second_line_text,
-            font=font, 
-            fill=textcolor,
-        )
+        if not dry_run:
+            self.image_draw.text(
+                (init_x, second_line_init_y), 
+                second_line_text,
+                font=font, 
+                fill=textcolor,
+            )
         return second_line_init_y + second_bottom
 
+    def draw_track_context(
+        self, 
+        track_name: str, 
+        artist_name: str, 
+        context_type: str, 
+        context_name: str, 
+        left: int, 
+        bottom: int, 
+        padding: int,
+    ):
+        """
+        First calculate initial y by doing a dry run. 
+        init_y is (bottom-padding) - (context_height), provided it is >= padding.
+        """
+        init_x = left + padding
+        y = 0
+        y = self.draw_song_title(track_name, init_x, y, linespacing=3, dry_run=True)
+        y = self.draw_small_text(artist_name, init_x, y + 3, linespacing=3, dry_run=True)
+        y = self.draw_spot_context(
+            context_type=context_type, 
+            context_text=context_name,
+            x=init_x,
+            y=y+3,
+            linespacing=3, 
+            dry_run=True,
+        )
+        init_y = (bottom-padding) - y
+        if init_y < padding:
+            error_msg = "Can't fit Spotify context information. This shouldn't be happening"
+            raise ValueError(error_msg)
+        logger.info(f"Drawing Spotify context body starting at ({init_x}, {init_y})")
+        y = self.draw_song_title(track_name, init_x, init_y, linespacing=3, dry_run=False)
+        y = self.draw_small_text(artist_name, init_x, y + 3, linespacing=3, dry_run=False)
+        y = self.draw_spot_context(
+            context_type=context_type, 
+            context_text=context_name,
+            x=init_x,
+            y=y+3,
+            linespacing=3, 
+            dry_run=False,
+        )
 
     def draw_calendar(self, dt: datetime, x: int, y: int) -> tuple:
         self.image_draw.rectangle([(x,y),(self.width, self.height)],fill = "#808080")    
@@ -265,16 +330,12 @@ class Draw:
         self.image_draw.text((x + 10, y + 35), self.get_greeting(dt), font=self.DSfnt10, fill="#ffffff")
 
     def get_greeting(self, dt: datetime) -> str:
-        if 6 <= dt.hour < 12:
-            msg = "gm"
-        elif 12 <= dt.hour < 20:
-            msg = "hi"
+        if 5 <= dt.hour < 10:
+            return "gm r \u2665"
+        elif 10 <= dt.hour < 20:
+            return "\u26653\u2665"
         else:
-            msg = "gn"
-        msg += " r \u2665"
-        return msg
-
-    # ---- DRAW MISC FUNCs ----------------------------------------------------------------------------
+            return "gn r \u2665"
 
     def dither_album_art(self, main_image_name: str = "AlbumImage") -> Optional[str]:
         """
